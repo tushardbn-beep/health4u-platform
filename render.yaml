@@ -1,0 +1,27 @@
+# Render Blueprint for a single public HEALTH4U web service + managed PostgreSQL.
+# Review pricing and database retention on Render before creating resources.
+services:
+  - type: web
+    name: health4u-web
+    runtime: node
+    buildCommand: npm install && npm install --prefix client && npm install --prefix server && npm run db:generate --prefix server && npm run build
+    startCommand: npm run db:migrate --prefix server && npm run db:seed --prefix server && npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: health4u-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CLIENT_ORIGIN
+        value: https://health4u-web.onrender.com
+      # Set BOOTSTRAP_ADMIN_EMAIL, BOOTSTRAP_ADMIN_PHONE and BOOTSTRAP_ADMIN_PASSWORD
+      # in the Render dashboard before first deploy/seed to create the first admin.
+databases:
+  - name: health4u-db
+    databaseName: health4u
+    user: health4u_app
+    # Choose an appropriate paid plan for persistent production data.

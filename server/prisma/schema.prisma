@@ -1,0 +1,154 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  PATIENT
+  PROVIDER
+  ADMIN
+  SUPPORT
+}
+enum BookingStatus {
+  REQUESTED
+  UNDER_REVIEW
+  CONFIRMED
+  PROVIDER_ASSIGNED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  REJECTED
+}
+enum PaymentStatus {
+  PENDING
+  AUTHORIZED
+  PAID
+  FAILED
+  REFUNDED
+  CASH_DUE
+}
+
+model User {
+  id           String   @id @default(cuid())
+  fullName     String
+  phone        String   @unique
+  email        String?  @unique
+  passwordHash String?
+  role         UserRole @default(PATIENT)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  bookings     Booking[] @relation("PatientBookings")
+  provider     ProviderProfile?
+  auditEvents  AuditEvent[]
+}
+
+model Service {
+  id                    String   @id @default(cuid())
+  slug                  String   @unique
+  name                  String
+  description           String
+  indicativePrice       Int?
+  currency              String   @default("INR")
+  isActive              Boolean  @default(true)
+  requiresPrescription  Boolean  @default(false)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  bookings              Booking[]
+  providers             ProviderService[]
+}
+
+model ProviderProfile {
+  id                 String   @id @default(cuid())
+  userId             String   @unique
+  displayName        String
+  credentialsSummary String
+  verificationStatus String   @default("PENDING")
+  serviceCities      String[]
+  isAvailable        Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  user               User     @relation(fields: [userId], references: [id])
+  bookings           Booking[]
+  services           ProviderService[]
+  availability       ProviderAvailability[]
+}
+
+model ProviderService {
+  providerId String
+  serviceId  String
+  provider   ProviderProfile @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  service    Service         @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  @@id([providerId, serviceId])
+}
+
+model ProviderAvailability {
+  id          String   @id @default(cuid())
+  providerId  String
+  startsAt    DateTime
+  endsAt      DateTime
+  isAvailable Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  provider    ProviderProfile @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  @@index([providerId, startsAt, endsAt])
+}
+
+model Booking {
+  id               String        @id @default(cuid())
+  reference        String        @unique
+  patientId        String
+  serviceId        String
+  providerId       String?
+  status           BookingStatus @default(REQUESTED)
+  city             String
+  address          String
+  requestedAt      DateTime
+  durationMinutes  Int            @default(60)
+  timeWindow       String
+  notes            String?
+  indicativePrice  Int?
+  finalPrice       Int?
+  paymentMethod    String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  patient          User          @relation("PatientBookings", fields: [patientId], references: [id])
+  service          Service       @relation(fields: [serviceId], references: [id])
+  provider         ProviderProfile? @relation(fields: [providerId], references: [id])
+  payment          Payment?
+  @@index([status, requestedAt])
+  @@index([patientId, createdAt])
+  @@index([city, requestedAt])
+  @@index([providerId, requestedAt])
+}
+
+model Payment {
+  id                String        @id @default(cuid())
+  bookingId         String        @unique
+  providerName      String?
+  providerOrderId   String?       @unique
+  providerPaymentId String?       @unique
+  amount            Int
+  currency          String        @default("INR")
+  status            PaymentStatus @default(PENDING)
+  idempotencyKey    String?       @unique
+  paidAt            DateTime?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  booking           Booking       @relation(fields: [bookingId], references: [id])
+}
+
+model AuditEvent {
+  id         String   @id @default(cuid())
+  actorId    String?
+  action     String
+  entityType String
+  entityId   String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+  actor      User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  @@index([entityType, entityId, createdAt])
+}
