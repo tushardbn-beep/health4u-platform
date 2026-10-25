@@ -14,7 +14,7 @@ services:
         fromDatabase:
           name: health4u-db
           property: connectionString
-      - key: JWT_SECRET
+      - key: JWT_SECRET 25adfd96ae9b07da2a2fb5fa78f7dcd9271790a28d1583ffc1290bb0340d3b57
         generateValue: true
       - key: CLIENT_ORIGIN
         value: https://health4u-web.onrender.com
