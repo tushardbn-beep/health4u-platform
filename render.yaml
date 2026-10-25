@@ -3,6 +3,7 @@
 services:
   - type: web
     name: health4u-web
+    plan: free
     runtime: node
     buildCommand: npm install && npm install --prefix client && npm install --prefix server && npm run db:generate --prefix server && npm run build
     startCommand: npm run db:migrate --prefix server && npm run db:seed --prefix server && npm start
@@ -13,6 +14,7 @@ services:
       - key: DATABASE_URL
         fromDatabase:
           name: health4u-db
+          plan: free
           property: connectionString
       - key: JWT_SECRET
         generateValue: true
