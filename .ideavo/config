@@ -1,0 +1,21 @@
+{
+  "systemSetup": [],
+  "templateName": "custom",
+  "projectDependencies": [
+    { "name": "Install Root Dependencies", "command": "npm install" },
+    { "name": "Install Client Dependencies", "command": "npm install --prefix client" },
+    { "name": "Install Server Dependencies", "command": "npm install --prefix server" },
+    { "name": "Generate Prisma Client", "command": "npm run db:generate --prefix server" }
+  ],
+  "codeChecks": [],
+  "buildSteps": [
+    { "name": "Build Client", "command": "npm run build" }
+  ],
+  "runStep": [
+    { "name": "Run API Server", "command": "npm run dev --prefix server -- --port 4000", "port": "4000" }
+  ],
+  "deploySteps": [],
+  "cleanupFiles": ["node_modules", "client/node_modules", "server/node_modules", "client/dist"],
+  "packageManager": "npm",
+  "envPaths": [{ "name": "server", "path": "server/.env" }]
+}
